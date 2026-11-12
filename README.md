@@ -1,5 +1,5 @@
 # Kanban Web
-
+![Tablero Kanban](docs/tablero.png)
 Frontend de un gestor de tareas estilo Kanban, hecho con **React 18 + TypeScript + Vite**. Consume la API REST de [kanban-api-php](https://github.com/fran1907/kanban-api-php).
 
 ## Funcionalidades
