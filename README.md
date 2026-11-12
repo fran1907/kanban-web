@@ -1,60 +1,65 @@
 # Kanban Web
-![Tablero Kanban](docs/tablero.png)
-Frontend de un gestor de tareas estilo Kanban, hecho con **React 18 + TypeScript + Vite**. Consume la API REST de [kanban-api-php](https://github.com/fran1907/kanban-api-php).
+
+Frontend de un gestor de tareas estilo Kanban, hecho con **React + TypeScript + Vite**. Consume la API de [kanban-api-php](https://github.com/fran1907/kanban-api-php).
 
 ## Funcionalidades
 
-- Registro e inicio de sesión (JWT guardado en `localStorage`)
-- Rutas protegidas con React Router
+- Registro e inicio de sesión
 - Crear y borrar tableros
-- Columnas y tareas con prioridad (baja, media, alta)
-- **Arrastrar y soltar** tareas entre columnas y reordenarlas (API nativa de HTML5, sin librerías extra)
-- Gestión de errores de red y de sesión caducada
+- Añadir y borrar columnas y tareas, con prioridad (baja, media o alta)
+- **Arrastrar y soltar** tareas entre columnas
 
 ## Tecnologías
 
-React 18, TypeScript (modo estricto), Vite, React Router, Context API para la autenticación y CSS propio.
+React 18 (componentes de función, `useState` y `useEffect`), TypeScript, Vite y CSS.
 
 ## Estructura
 
 ```
 src/
-├── api.ts            # Cliente HTTP tipado hacia la API
-├── auth.tsx          # Contexto de autenticación
-├── types.ts          # Tipos compartidos (Board, Column, Task...)
-├── App.tsx           # Rutas y barra superior
+├── main.tsx                  # Arranque de la aplicación
+├── App.tsx                   # Decide qué pantalla se muestra
+├── api.ts                    # Todas las llamadas a la API (fetch)
+├── types.ts                  # Tipos de TypeScript (Tablero, Columna, Tarea...)
+├── styles.css
 └── pages/
-    ├── Login.tsx     # Login y registro
-    ├── Boards.tsx    # Lista de tableros
-    └── BoardPage.tsx # Tablero con columnas y drag and drop
+    ├── Login.tsx             # Login y registro
+    ├── Tableros.tsx          # Lista de tableros
+    └── TableroAbierto.tsx    # Un tablero con sus columnas y tareas
 ```
+
+### Cómo funciona
+
+- `App.tsx` guarda en el estado si hay un usuario y qué tablero está abierto, y según eso muestra `Login`, `Tableros` o `TableroAbierto`.
+- Cuando inicias sesión, la API devuelve un **token**. Se guarda en `localStorage` y `api.ts` lo envía en cada petición.
+- Las pantallas llaman a las funciones de `api.ts` (por ejemplo `crearTarea()`), y después vuelven a cargar los datos para mostrarlos actualizados.
+- El arrastre usa el drag and drop nativo de HTML: al empezar a arrastrar una tarea se guarda su id y, al soltarla sobre una columna, se llama a la API para moverla.
 
 ## Puesta en marcha
 
-Necesitas tener la API funcionando en `http://localhost:8000` (ver el README de `kanban-api-php`).
+Necesitas Node.js y la API funcionando en `http://localhost:8000` (mira el README de `kanban-api-php`).
 
 ```bash
 npm install
-cp .env.example .env      # en Windows: copy .env.example .env
 npm run dev
 ```
 
-La app se abre en `http://localhost:5173`.
+La aplicación se abre en `http://localhost:5173`.
 
-Para generar la versión de producción: `npm run build`.
+Si la API está en otra dirección, cambia la constante `URL_API` al principio de `src/api.ts`.
 
-## Configuración
+## Cómo arrancarlo cada día
 
-| Variable | Descripción | Por defecto |
-|----------|-------------|-------------|
-| `VITE_API_URL` | URL base de la API | `http://localhost:8000/api` |
+1. XAMPP: *Start* en MySQL.
+2. Terminal 1, en `kanban-api-php`: `php -S localhost:8000 -t public`
+3. Terminal 2, en `kanban-web`: `npm run dev`
+4. Abrir `http://localhost:5173`
 
 ## Próximos pasos
 
-- [ ] Editar título, descripción y fecha de las tareas
-- [ ] Renombrar columnas
-- [ ] Tests con Vitest y Testing Library
-- [ ] Despliegue en Vercel
+- [ ] Editar tareas (título y descripción)
+- [ ] Reordenar tareas dentro de una columna
+- [ ] Desplegar en Vercel
 
 ## Licencia
 

@@ -1,28 +1,41 @@
-import type { ReactElement } from 'react';
-import { Link, Navigate, Route, Routes } from 'react-router-dom';
-import { useAuth } from './auth';
+import { useState } from 'react';
 import Login from './pages/Login';
-import Boards from './pages/Boards';
-import BoardPage from './pages/BoardPage';
+import Tableros from './pages/Tableros';
+import TableroAbierto from './pages/TableroAbierto';
+import type { Usuario } from './types';
 
-function RequireAuth({ children }: { children: ReactElement }) {
-  const { user } = useAuth();
-  return user ? children : <Navigate to="/login" replace />;
-}
-
+// Componente principal. Decide qué pantalla se muestra:
+//   - sin usuario            -> Login
+//   - con usuario            -> lista de tableros
+//   - con un tablero elegido -> ese tablero
 export default function App() {
-  const { user, logout } = useAuth();
+  // Al abrir la página, recuperamos el usuario guardado en el navegador (si lo hay)
+  const [usuario, setUsuario] = useState<Usuario | null>(() => {
+    const guardado = localStorage.getItem('usuario');
+    return guardado ? JSON.parse(guardado) : null;
+  });
+  const [tableroId, setTableroId] = useState<number | null>(null);
+
+  function alEntrar(token: string, usuario: Usuario) {
+    localStorage.setItem('token', token);
+    localStorage.setItem('usuario', JSON.stringify(usuario));
+    setUsuario(usuario);
+  }
+
+  function salir() {
+    localStorage.clear();
+    setUsuario(null);
+    setTableroId(null);
+  }
 
   return (
     <>
       <header className="topbar">
-        <Link to="/" className="brand">
-          Kanban
-        </Link>
-        {user && (
+        <span className="brand">Kanban</span>
+        {usuario && (
           <div className="topbar-right">
-            <span>Hola, {user.name}</span>
-            <button className="btn btn-ghost" onClick={logout}>
+            <span>Hola, {usuario.name}</span>
+            <button className="btn btn-ghost" onClick={salir}>
               Salir
             </button>
           </div>
@@ -30,26 +43,11 @@ export default function App() {
       </header>
 
       <main className="container">
-        <Routes>
-          <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <Boards />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/boards/:id"
-            element={
-              <RequireAuth>
-                <BoardPage />
-              </RequireAuth>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        {!usuario && <Login alEntrar={alEntrar} />}
+        {usuario && tableroId === null && <Tableros abrirTablero={setTableroId} />}
+        {usuario && tableroId !== null && (
+          <TableroAbierto id={tableroId} volver={() => setTableroId(null)} />
+        )}
       </main>
     </>
   );

@@ -1,66 +1,83 @@
-import type { AuthResponse, Board, BoardSummary, Priority } from './types';
+// Aquí están todas las llamadas a la API (backend en PHP).
+// Si cambias la dirección de la API, solo tienes que cambiarla en esta línea:
+const URL_API = 'http://localhost:8000/api';
 
-const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
-const TOKEN_KEY = 'kanban_token';
+// Función general: hace la petición, envía el token y devuelve los datos en JSON.
+async function llamar(ruta: string, metodo = 'GET', cuerpo?: object) {
+  const token = localStorage.getItem('token');
+  let respuesta: Response;
 
-export const tokenStore = {
-  get: (): string | null => localStorage.getItem(TOKEN_KEY),
-  set: (token: string): void => localStorage.setItem(TOKEN_KEY, token),
-  clear: (): void => localStorage.removeItem(TOKEN_KEY),
-};
-
-export class ApiError extends Error {
-  constructor(message: string, public status: number) {
-    super(message);
-  }
-}
-
-async function request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
-  const headers: Record<string, string> = {};
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
-  const token = tokenStore.get();
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, {
-      method: options.method ?? 'GET',
-      headers,
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    respuesta = await fetch(URL_API + ruta, {
+      method: metodo,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token,
+      },
+      body: cuerpo ? JSON.stringify(cuerpo) : undefined,
     });
   } catch {
-    throw new ApiError('No se pudo conectar con el servidor. ¿Está arrancada la API?', 0);
+    throw new Error('No se pudo conectar con la API. ¿Está arrancada?');
   }
 
-  const data = await res.json().catch(() => null);
-  if (!res.ok) {
-    if (res.status === 401 && token) {
-      tokenStore.clear();
-      window.dispatchEvent(new Event('auth:logout'));
+  const datos = await respuesta.json();
+
+  if (!respuesta.ok) {
+    // Si la sesión ya no es válida, volvemos a la pantalla de login
+    if (respuesta.status === 401 && !ruta.startsWith('/auth')) {
+      localStorage.clear();
+      window.location.reload();
     }
-    throw new ApiError(data?.error ?? 'Error inesperado', res.status);
+    throw new Error(datos.error || 'Error inesperado');
   }
-  return data as T;
+
+  return datos;
 }
 
-export const api = {
-  register: (name: string, email: string, password: string) =>
-    request<AuthResponse>('/auth/register', { method: 'POST', body: { name, email, password } }),
-  login: (email: string, password: string) =>
-    request<AuthResponse>('/auth/login', { method: 'POST', body: { email, password } }),
+// ---- Usuarios ----
+export function registrar(name: string, email: string, password: string) {
+  return llamar('/auth/register', 'POST', { name, email, password });
+}
 
-  listBoards: () => request<BoardSummary[]>('/boards'),
-  createBoard: (title: string) => request<{ id: number; title: string }>('/boards', { method: 'POST', body: { title } }),
-  getBoard: (id: number) => request<Board>(`/boards/${id}`),
-  deleteBoard: (id: number) => request<{ deleted: boolean }>(`/boards/${id}`, { method: 'DELETE' }),
+export function iniciarSesion(email: string, password: string) {
+  return llamar('/auth/login', 'POST', { email, password });
+}
 
-  addColumn: (boardId: number, title: string) =>
-    request(`/boards/${boardId}/columns`, { method: 'POST', body: { title } }),
-  deleteColumn: (id: number) => request(`/columns/${id}`, { method: 'DELETE' }),
+// ---- Tableros ----
+export function listarTableros() {
+  return llamar('/boards');
+}
 
-  addTask: (columnId: number, title: string, priority: Priority) =>
-    request(`/columns/${columnId}/tasks`, { method: 'POST', body: { title, priority } }),
-  deleteTask: (id: number) => request(`/tasks/${id}`, { method: 'DELETE' }),
-  moveTask: (id: number, columnId: number, position: number) =>
-    request(`/tasks/${id}/move`, { method: 'PATCH', body: { column_id: columnId, position } }),
-};
+export function crearTablero(title: string) {
+  return llamar('/boards', 'POST', { title });
+}
+
+export function verTablero(id: number) {
+  return llamar('/boards/' + id);
+}
+
+export function borrarTablero(id: number) {
+  return llamar('/boards/' + id, 'DELETE');
+}
+
+// ---- Columnas ----
+export function crearColumna(tableroId: number, title: string) {
+  return llamar('/boards/' + tableroId + '/columns', 'POST', { title });
+}
+
+export function borrarColumna(id: number) {
+  return llamar('/columns/' + id, 'DELETE');
+}
+
+// ---- Tareas ----
+export function crearTarea(columnaId: number, title: string, priority: string) {
+  return llamar('/columns/' + columnaId + '/tasks', 'POST', { title, priority });
+}
+
+export function borrarTarea(id: number) {
+  return llamar('/tasks/' + id, 'DELETE');
+}
+
+export function moverTarea(id: number, columnaId: number) {
+  return llamar('/tasks/' + id + '/move', 'PATCH', { column_id: columnaId });
+}

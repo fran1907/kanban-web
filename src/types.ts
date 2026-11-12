@@ -1,39 +1,32 @@
-export type Priority = 'baja' | 'media' | 'alta';
+// Tipos de TypeScript: describen la forma de los datos que devuelve la API.
 
-export interface User {
+export interface Usuario {
   id: number;
   name: string;
   email: string;
 }
 
-export interface AuthResponse {
-  token: string;
-  user: User;
-}
-
-export interface Task {
+export interface Tarea {
   id: number;
   column_id: number;
   title: string;
   description: string | null;
-  priority: Priority;
-  due_date: string | null;
-  position: number;
+  priority: 'baja' | 'media' | 'alta';
 }
 
-export interface Column {
+export interface Columna {
   id: number;
   title: string;
-  position: number;
-  tasks: Task[];
+  tasks: Tarea[];
 }
 
-export interface BoardSummary {
+// Lo que devuelve la lista de tableros
+export interface TableroResumen {
   id: number;
   title: string;
-  created_at: string;
 }
 
-export interface Board extends BoardSummary {
-  columns: Column[];
+// Lo que devuelve un tablero abierto: incluye sus columnas y tareas
+export interface Tablero extends TableroResumen {
+  columns: Columna[];
 }
